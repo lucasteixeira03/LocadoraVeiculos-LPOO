@@ -1,58 +1,60 @@
 from datetime import date
-from model.veiculo import Categoria
-from model.veiculo_factory import VeiculoFactory
-from model.Locacao import Locacao
+from model.locacao import Locacao
+from model.veiculo import VeiculoFactory, Categoria
+from model.decoradores import GPSDecorator, SeguroTerceirosDecorator
 
+print("\n--- TESTANDO O PADRÃO STATE RESTRITIVO ---")
 
-print("=== TESTE 1: Criação via Factory ===")
-try:
-    veiculo1 = VeiculoFactory.criar_veiculo("carro", "ABC1234", Categoria.ECONOMICO)
-    print("Veículo criado com sucesso:", type(veiculo1).__name__, veiculo1.placa, veiculo1.taxa_diaria)
-except Exception as e:
-    print("Erro:", e)
+carro_estado = VeiculoFactory.criar_veiculo(
+    "carro",
+    "HJI3K45",
+    Categoria.ECONOMICO,
+    taxa_diaria=100.0
+)
 
+# 1. Tentar alugar um carro disponível
+carro_estado.tentar_alugar()
 
-print("\n=== TESTE 2: Cálculo com múltiplos dias ===")
-try:
-    veiculo2 = VeiculoFactory.criar_veiculo("carro", "DEF1G34", Categoria.EXECUTIVO)
-    locacao1 = Locacao(
-        veiculo=veiculo2,
-        data_inicio=date(2025, 6, 1),
-        data_fim=date(2025, 6, 3)
-    )
-    print("Valor total da locação:", locacao1.calcular_valor_locacao())
-except Exception as e:
-    print("Erro:", e)
+# 2. Tentar alugar novamente
+carro_estado.tentar_alugar()
 
+# 3. Tentar mandar para manutenção enquanto está alugado
+carro_estado.reter_na_frota_pra_conserto()
 
-print("\n=== TESTE 3: Devolução no mesmo dia ===")
-try:
-    veiculo3 = VeiculoFactory.criar_veiculo("motorhome", "XYZ9999", Categoria.ECONOMICO)
-    locacao2 = Locacao(
-        veiculo=veiculo3,
-        data_inicio=date(2025, 6, 10),
-        data_fim=date(2025, 6, 10)
-    )
-    print("Valor total da locação:", locacao2.calcular_valor_locacao())
-except Exception as e:
-    print("Erro:", e)
+# 4. Devolver o veículo
+carro_estado.tentar_devolver()
 
+# 5. Enviar para manutenção
+carro_estado.reter_na_frota_pra_conserto()
 
-print("\n=== TESTE 4: Tipo inválido na fábrica ===")
-try:
-    veiculo4 = VeiculoFactory.criar_veiculo("moto", "AAA1234", Categoria.ECONOMICO)
-except Exception as e:
-    print("Erro:", e)
+# 6. Tentar alugar enquanto está em manutenção
+carro_estado.tentar_alugar()
 
+# 7. Finalizar manutenção / devolver ao pátio
+carro_estado.tentar_devolver()
 
-print("\n=== TESTE 5: Datas inválidas ===")
-try:
-    veiculo5 = VeiculoFactory.criar_veiculo("carro", "BBB1234", Categoria.ECONOMICO)
-    locacao3 = Locacao(
-        veiculo=veiculo5,
-        data_inicio=date(2025, 6, 5),
-        data_fim=date(2025, 6, 2)
-    )
-    print("Valor total da locação:", locacao3.calcular_valor_locacao())
-except Exception as e:
-    print("Erro:", e)
+# 8. Alugar novamente após voltar a ficar disponível
+carro_estado.tentar_alugar()
+
+print("\n--- TESTANDO O PADRÃO DECORATOR ---")
+
+carro = VeiculoFactory.criar_veiculo(
+    "carro",
+    "ABC1D34",
+    Categoria.ECONOMICO,
+    taxa_diaria=150.0
+)
+
+locacao_base = Locacao(
+    veiculo=carro,
+    data_inicio=date(2026, 3, 1),
+    data_fim=date(2026, 3, 5)
+)
+
+print(f"Valor Base (somente diária + seguro base): R$ {locacao_base.calcular_valor_locacao()}")
+
+locacao_com_gps = GPSDecorator(locacao_base)
+print(f"Valor somado do pacote + GPS: R$ {locacao_com_gps.calcular_valor_locacao()}")
+
+locacao_vip_top = SeguroTerceirosDecorator(locacao_com_gps)
+print(f"Valor pacote completão (Base + GPS + Seg. Terceiros): R$ {locacao_vip_top.calcular_valor_locacao()}")
