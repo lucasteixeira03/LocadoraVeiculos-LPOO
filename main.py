@@ -1,2 +1,4 @@
-from views.veiculo_list_view import VeiculoListView
+from views.veiculo_list_view import main
 
+if __name__ == "__main__":
+    main()

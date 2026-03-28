@@ -71,6 +71,15 @@ class Veiculo(ABC):
     def reter_na_frota_pra_conserto(self):
         self.estado_atual.enviar_manutencao()
 
+    def exibir_dados(self) -> str:
+        return (
+            f"Tipo: {self.__class__.__name__}\n"
+            f"Placa: {self.placa}\n"
+            f"Categoria: {self.categoria.value}\n"
+            f"Taxa diaria: R$ {self.taxa_diaria:.2f}\n"
+            f"Seguro base: R$ {self.valor_seguro:.2f}"
+        )
+
 
 class Carro(Veiculo):
     def __init__(self, placa: str, taxa_diaria: float, categoria: Categoria = Categoria.ECONOMICO):
