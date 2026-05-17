@@ -64,11 +64,72 @@ class VeiculoDAO(GenericDAO):
         
         
     
-    def remover(self, id_objeto):
-        pass
+    def remover(self, id_objeto: str):
+        if not self.conexao:
+            return False, "Sem conexão com o BD"
+        
+        try:
+            cursor = self.conexao.cursor()
+            query = "DELETE FROM tb_veiculos WHERE vei_placa = %s"
+            cursor.execute(query, (id_objeto,))
+            self.conexao.commit()
+            return True, "Veículo removido com sucesso"
+            
+        except Exception as e:
+            print(f"Erro ao remover veículo: {id_objeto}. Erro: {e}")
+            self.conexao.rollback()
+            return False, f"Erro ao remover veículo: {id_objeto}: {e}"
+        
+        finally:
+            if cursor:
+                cursor.close()
     
-    def atualizar(self, objeto):
-        pass
+    def listar_placas(self):
+        if not self.conexao:
+            return []
+        
+        try:
+            cursor = self.conexao.cursor()
+            query = """SELECT vei_placa
+                    FROM tb_veiculos
+                    ORDER BY vei_placa"""
+            cursor.execute(query)
+            linhas = cursor.fetchall()
+            return [cada_linha[0] for cada_linha in linhas]
+        
+        except Exception as e:
+            print(f"Erro ao buscar placas dos veículos: {e}")
+            return []
+        
+        finally:
+            if cursor:
+                cursor.close()
+
+    def atualizar(self, objeto: Veiculo):
+        if not self.conexao:
+            return False, "Sem conexão com o BD"
+        
+        try:
+            cursor = self.conexao.cursor()
+            query = """UPDATE tb_veiculos 
+                    SET vei_categoria = %s, vei_taxa_diaria = %s, vei_estado_atual = %s, vei_tipo = %s 
+                    WHERE vei_placa = %s"""
+            cursor.execute(query, (objeto.categoria.value,
+                                   objeto.taxa_diaria,
+                                   objeto.estado_atual.__class__.__name__,
+                                   objeto.__class__.__name__,
+                                   objeto.placa))
+            self.conexao.commit()
+            return True, "Veículo atualizado com sucesso"
+            
+        except Exception as e:
+            print(f"Erro ao atualizar veículo: {objeto.placa}: {e}")
+            self.conexao.rollback()
+            return False, f"Erro ao atualizar veículo: {objeto.placa}: {e}"
+        
+        finally:
+            if cursor:
+                cursor.close()
     
     def buscar_por_placa(self, placa: str):
         if not self.conexao:

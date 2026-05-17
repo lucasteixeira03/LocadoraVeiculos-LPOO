@@ -68,7 +68,7 @@ class JanelaListagemVeiculos(tk.Toplevel):
         btn_novo = tk.Button(frame_botoes, text="Novo", width=10, command=self.abrir_novo)
         btn_novo.pack(side="left", padx=5)
 
-        btn_editar = tk.Button(frame_botoes, text="Editar", width=15)
+        btn_editar = tk.Button(frame_botoes, text="Editar", width=15, command=self.abrir_editar)
         btn_editar.pack(side="left", padx=5)
         
         btn_info = tk.Button(frame_botoes, text="Ver Informações", width=15, command=self.mostrar_info)
@@ -151,49 +151,61 @@ class JanelaListagemVeiculos(tk.Toplevel):
         # 4. Verifica se o usuário quer remover o objeto
         resposta = messagebox.askyesno("Confirmar Exclusão", f"Tem certeza que deseja remover o veículo de placa {placa}?", parent=self)
         if resposta:
-            # 5. Trazemos a "lista_veiculos" global, onde todos os objetos de modelo estão salvos.
-            global lista_veiculos
+            # 5. Chama o controller para remover do banco de dados
+            sucesso, msg = self.controller.remover_veiculo(placa)
             
-            # 6. Removemos o elemento da lista global 
-            # 6.1. Opção 1 - refazer a lista com todos os elementos da lista que não possuam a placa selecionada
-            # lista_veiculos = [v for v in lista_veiculos if v.placa != placa]
-            
-            # 6.2. Opção 2: selecionar o objeto veículo selecionado e remover da lista
-            veiculo = next((v for v in lista_veiculos if v.placa == placa), None)
-            lista_veiculos.remove(veiculo)
-            
-            # 7. Recarregar as informações na tabela
-            self.carregar_dados()
-            messagebox.showinfo("Sucesso", f"O veículo {placa} foi removido com sucesso.", parent=self)
+            if sucesso:
+                messagebox.showinfo("Sucesso", msg, parent=self)
+                # 6. Recarregar as informações na tabela
+                self.carregar_dados()
+            else:
+                messagebox.showerror("Erro", msg, parent=self)
 
     def carregar_dados(self):
-        # 1. Limpa todas as linhas atuais da tabela (Treeview) para não duplicar os itens na hora de recarregar
         for row in self.tree.get_children():
             self.tree.delete(row)
             
-        # 2. Resgata a variável global 'lista_veiculos' que age como nossa persistência em memória
-        global lista_veiculos
         veiculos = self.controller.listar_veiculos()
         
-        # 3. Tratamento de segurança: se a lista por acaso for None (nula), avisa o erro
         if veiculos is None:
              messagebox.showerror("Erro", "Erro ao carregar veículos.", parent=self)
              return
              
-        # 4. Percorre todos os veiculos (objetos Carro e Motorhome) presentes na lista salva
         for v in veiculos:
-            # Pega dinamicamente o nome da classe do objeto (ex: "Carro" ou "Motorhome")
             tipo_nome = type(v).__name__
-            
-            # Formata o número float (ex: 150.0) para formato de moeda brasileira em string (ex: "R$ 150,00")
             taxa_formatada = f"R$ {v.taxa_diaria:.2f}".replace('.', ',')
+            categoria_texto = v.categoria.name if hasattr(v.categoria, 'name') else str(v.categoria)
             
-            # 5. Insere uma nova linha na Tabela (Treeview). O 'end' diz para colocar no fim da tabela
-            # Os 'values' devem seguir a ordem correta das 4 colunas cadastradas anteriormente:
-            # (Placa, Tipo, Categoria, Taxa Diária)
             self.tree.insert("", "end", values=(
                 v.placa, 
                 tipo_nome, 
-                v.categoria, 
+                categoria_texto, 
                 taxa_formatada
             ))
+
+    def abrir_editar(self):
+        # 1. Verifica qual linha da tabela (Treeview) está selecionada
+        selecionado = self.tree.selection()
+        
+        if not selecionado:
+            messagebox.showwarning("Aviso", "Selecione um veículo para editar.", parent=self)
+            return
+
+        # 2. Pega a placa do veículo
+        item = self.tree.item(selecionado[0])
+        placa = item['values'][0]
+
+        # 3. Busca o veículo via Controller
+        veiculo = self.controller.buscar_por_placa(placa)
+        if not veiculo:
+            messagebox.showerror("Erro", "Veículo não encontrado.", parent=self)
+            return
+
+        # 4. Abre a janela de cadastro, mas em modo de edição (passando o veículo)
+        from view.veiculo_view import JanelaCadastroVeiculo
+        janela_edicao = JanelaCadastroVeiculo(self, veiculo_existente=veiculo)
+        
+        self.wait_window(janela_edicao)
+        
+        # 5. Recarrega a tabela após a edição
+        self.carregar_dados()

@@ -5,15 +5,25 @@ from .LocacaoStrategy import *
 
 
 class Locacao:
+    STATUS_VALIDOS = ("reservado", "locado", "devolvido", "cancelado")
 
-    def __init__(self, veiculo: Veiculo, data_inicio: date=datetime.now().date(), data_fim: date=None, estrategia:CalculoLocacaoStrategy = CalculoPadraoStrategy()):
+    def __init__(self, veiculo: Veiculo, data_inicio: date=datetime.now().date(), data_fim: date=None,
+                 estrategia:CalculoLocacaoStrategy = CalculoPadraoStrategy(), id_locacao=None,
+                 cliente: str="", status: str="reservado", valor_total: float=None):
+        self.id_locacao = id_locacao
+        self.cliente = cliente
         self.__data_inicio = None
         self.__data_fim = None
+        self.__status = None
+        self.__valor_total = None
         
         self.veiculo = veiculo
         self.data_inicio = data_inicio
         self.data_fim = data_fim
         self.estrategia = estrategia
+        self.devolvido = False
+        self.status = status
+        self.valor_total = valor_total
     
     @property
     def veiculo(self):
@@ -50,6 +60,32 @@ class Locacao:
         if data_fim is not None and self.data_inicio > data_fim:
             raise DataInvalidaError("Data de início não pode ser posterior à data de fim.")
         self.__data_fim = data_fim
+
+    @property
+    def status(self):
+        return self.__status
+    
+    @status.setter
+    def status(self, status: str):
+        status = status.strip().lower()
+        if status not in self.STATUS_VALIDOS:
+            raise ValueError("Status de locação inválido.")
+        self.__status = status
+
+    @property
+    def valor_total(self):
+        return self.__valor_total
+    
+    @valor_total.setter
+    def valor_total(self, valor_total: float):
+        if valor_total is None or valor_total == "":
+            self.__valor_total = None
+            return
+        
+        valor = float(valor_total)
+        if valor < 0:
+            raise ValueError("Valor da locação não pode ser negativo.")
+        self.__valor_total = valor
         
     def calcular_valor_locacao(self) -> float:
         if self.data_fim is None:
@@ -59,5 +95,14 @@ class Locacao:
         if dias <= 0:
             dias = 1
                
-        valor_total = self.estrategia.calcular_diarias(self.veiculo, dias)
+        valor_total = self.veiculo.taxa_diaria * dias
         return float(valor_total)
+
+    def calcular_diarias(self) -> int:
+        if self.data_fim is None:
+            return 1
+        
+        dias = (self.data_fim - self.data_inicio).days
+        if dias <= 0:
+            dias = 1
+        return dias

@@ -9,15 +9,21 @@ import view.veiculo_list_view as list_view
 from control.veiculo_controller import VeiculoController
 
 class JanelaCadastroVeiculo(tk.Toplevel):
-    def __init__(self, master=None):
+    def __init__(self, master=None, veiculo_existente=None):
         super().__init__(master)
-        self.title("Cadastro de Novo Veículo")
+        
+        self.veiculo_existente = veiculo_existente
+        self.title("Atualizar Veículo" if veiculo_existente else "Cadastro de Novo Veículo")
+        
         self.geometry("400x350")
         self.controller = VeiculoController()
         
         
+        
         # Label de título
-        lbl_titulo = tk.Label(self, text="Cadastrar Veículo", font=("Helvetica", 16, "bold"))
+        texto_titulo = "Atualizar Veículo" if veiculo_existente else "Cadastrar Veículo"
+        lbl_titulo = tk.Label(self, text=texto_titulo, font=("Helvetica", 16, "bold"))
+        
         lbl_titulo.pack(pady=10)
 
         # Placa
@@ -49,10 +55,20 @@ class JanelaCadastroVeiculo(tk.Toplevel):
         self.txt_taxa = tk.Entry(frame_taxa)
         self.txt_taxa.pack(side="right", expand=True, fill="x")
 
-        # Botão Cadastrar
+        # Botão Cadastrar \ Atualizar
         # Removido bg/fg para compatibilidade com botões nativos do macOS
-        btn_cadastrar = tk.Button(self, text="Salvar Veículo", command=self.solicitar_cadastro)
+        texto_botao = "Atualizar Veículo" if veiculo_existente else "Salvar Veículo"
+        btn_cadastrar = tk.Button(self, text=texto_botao, command=self.solicitar_cadastro)
+        
         btn_cadastrar.pack(pady=20)
+        
+        # Preencher dados se for edição
+        if self.veiculo_existente:
+            self.txt_placa.insert(0, self.veiculo_existente.placa)
+            self.txt_placa.config(state="disabled") # Placa não pode ser alterada
+            self.txt_tipo.insert(0, self.veiculo_existente.__class__.__name__)
+            self.cb_categoria.set(self.veiculo_existente.categoria)
+            self.txt_taxa.insert(0, f"{self.veiculo_existente.taxa_diaria}")
 
     def solicitar_cadastro(self):
         placa = self.txt_placa.get().strip().upper()
@@ -60,7 +76,10 @@ class JanelaCadastroVeiculo(tk.Toplevel):
         categoria = self.cb_categoria.get().strip()
         taxa_str = self.txt_taxa.get().strip()
 
-        sucesso, msg = self.controller.salvar_veiculo(placa, tipo, categoria, taxa_str)
+        if self.veiculo_existente:
+            sucesso, msg = self.controller.atualizar_veiculo(placa, tipo, categoria, taxa_str)
+        else:
+            sucesso, msg = self.controller.salvar_veiculo(placa, tipo, categoria, taxa_str)
         
         if sucesso:
             messagebox.showinfo("Sucesso", msg, parent=self)
