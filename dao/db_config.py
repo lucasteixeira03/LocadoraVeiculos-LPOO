@@ -7,7 +7,7 @@ class DatabaseConfig:
         try:
             conexao = psycopg2.connect(
                 user = "postgres",
-                password = "Sacul123@",
+                password = "postgres",
                 host = "localhost",
                 port = "5432",
                 database = "db_lpoo_locadora_veiculos"
