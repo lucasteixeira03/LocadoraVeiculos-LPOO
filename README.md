@@ -2,41 +2,139 @@
 
 Este é o projeto base utilizado na disciplina de **Linguagem de Programação Orientada a Objetos (LPOO)** do curso de Ciência da Computação, semestre **2026-1**, ministrada pela **Professora Vanessa**.
 
-O objetivo deste projeto é servir como base prática para a aplicação de conceitos de Orientação a Objetos e Padrões de Projeto estudados em sala de aula.
+O objetivo deste projeto é servir como base prática para a aplicação de conceitos de Orientação a Objetos e Padrões de Projeto (Design Patterns) estudados em sala de aula.
 
-## Funcionalidades Desenvolvidas
+## Tutoriais
 
-O projeto possui cadastro de veículos e funcionalidades de locação de veículos usando Python, Tkinter, MVC, DAO e PostgreSQL.
+Os guias práticos para a implementação dos padrões de projeto no sistema da locadora estão disponíveis na pasta `tutoriais/`:
 
-Foram implementadas telas para:
+*   [Aula 2 - Factory Method](<tutoriais/aula-2-tutorial--factory--locadora-veiculos.md>)
+*   [Aula 3.1 - Strategy](<tutoriais/aula-3-1-tutorial-strategy--locadora-veiculos.md>)
+*   [Aula 3.2 - State](<tutoriais/aula-3-2-tutorial-state--locadora-veiculos.md>)
+*   [Aula 3.3 - Decorator](<tutoriais/aula-3-3-tutorial-decorator--locadora-veiculos.md>)
 
-- Cadastro, edição, remoção e consulta de veículos.
-- Cadastro administrativo de locações.
-- Tela operacional para reservar, locar, devolver, cancelar e visualizar detalhes de locações.
-- Busca de veículos disponíveis por categoria e período.
+---
 
-## Detalhamento de Aprendizado (Dificuldade e Soluções)
+## Sobre o Projeto
 
-- Durante o desenvolvimento, uma das principais dificuldades foi trazer dados de veículos para dentro da funcionalidade de locação. Foi necessário buscar as placas dos veículos cadastrados no banco e exibi-las no campo de seleção da tela `Cadastro -> Locações -> Novo`, mantendo o fluxo correto entre View, Controller e DAO.
+O objetivo deste projeto é servir como base prática para a aplicação de conceitos de **Orientação a Objetos** e **Padrões de Projeto** (Design Patterns) estudados em sala de aula, evoluindo de forma incremental a cada aula/atividade.
 
-- Implementação da tela `Ação -> Locar Veículo -> Nova Reserva`. Nessa parte, foi necessário criar a lógica de `buscar_veiculos_disponiveis`, considerando categoria, data de início, data de fim e as locações já registradas no banco.
+O sistema simula uma **Locadora de Veículos** com as seguintes funcionalidades:
 
-- Também foi necessário implementar a verificação de conflito de locações. Um veículo não pode aparecer como disponível quando já possui uma locação ativa no mesmo período. Para isso, foram considerados como ativos os status `reservado` e `locado`.
+- **CRUD de Veículos** — cadastro, edição, remoção e visualização de veículos (Carro, Motorhome)
+- **CRUD de Locações (Admin)** — gerenciamento completo de locações sem restrições de negócio
+- **Operações de Locação (Usuário)** — reservar, locar, devolver e cancelar locações com regras de negócio
+- **Validação de Disponibilidade** — filtro dinâmico de veículos disponíveis por período e categoria
+- **Cálculo automático de valor** — cálculo de diárias na devolução usando Strategy Pattern
 
-- No Tkinter, organizar a `JanelaPrincipal` e o método `criar_menu`. A aplicação precisa ter apenas uma instância de `tk.Tk`, enquanto as demais janelas devem ser `tk.Toplevel`. Além disso, nas telas que abrem cadastro ou edição, foi usado `wait_window` para aguardar o fechamento da janela filha e depois chamar `carregar_dados`, atualizando a tabela.
 
-- Houve dificuldade na implementação dos fluxos de abrir edição e remoção. Esse ajuste foi feito tanto em Veículos quanto em Locações.
+## Padrões de Projeto Utilizados
 
-- As dificuldades foram resolvidas com revisão das aulas, testes no sistema, análise das mensagens exibidas no terminal e apoio guiado por ferramentas de IA.
+| Padrão | Onde é aplicado | Finalidade |
+|--------|----------------|------------|
+| **MVC** | Toda a aplicação | Separação de responsabilidades (Model, View, Controller) |
+| **Factory** | `VeiculoFactory` | Criação de objetos Carro/Motorhome sem expor a lógica |
+| **Strategy** | `CalculoPadraoStrategy` / `CalculoVIPStrategy` | Variação do algoritmo de cálculo de diárias |
+| **State** | `estados_veiculo.py` / `estados_locacao.py` | Controle de estados de Veículos e Locações |
+| **Decorator** | `decoradores.py` | Adição dinâmica de serviços extras à locação |
+| **DAO** | `VeiculoDAO` / `LocacaoDAO` | Abstração da persistência em banco de dados |
 
-***O principal aprendizado foi compreender melhor a separação do projeto em MVC e DAO. Essa organização reduz a mistura de responsabilidades, facilita a manutenção e deixa o código mais compreensível.***
+---
 
-## Declaração de Uso de IA
+## Banco de Dados
+
+- **SGBD:** PostgreSQL
+- **Banco:** `db_lpoo_locadora_veiculos`
+- **Tabelas:**
+  - `tb_veiculos` — cadastro de veículos (`vei_id` PK, `vei_placa` UNIQUE)
+  - `tb_locacoes` — locações (`loc_id` PK, `loc_veiculo_id` FK → `vei_id`)
+- **Script SQL:** [`sql/criar_tabela_locacoes.sql`](sql/criar_tabela_locacoes.sql)
+
+### Modelo de Relacionamento
+
+```
+tb_veiculos (1) ──────── (N) tb_locacoes
+     │                           │
+  vei_id (PK) ◄─────FK───── loc_veiculo_id
+```
+
+### Script SQL
+
+```sql
+-- 1. Adicionar coluna de ID auto-increment em tb_veiculos (se não existir)
+ALTER TABLE tb_veiculos 
+  ADD COLUMN IF NOT EXISTS vei_id SERIAL;
+
+-- 2. Garantir que vei_id seja PRIMARY KEY
+ALTER TABLE tb_veiculos 
+  DROP CONSTRAINT IF EXISTS tb_veiculos_pkey;
+ALTER TABLE tb_veiculos 
+  ADD CONSTRAINT tb_veiculos_pkey PRIMARY KEY (vei_id);
+ALTER TABLE tb_veiculos 
+  ADD CONSTRAINT tb_veiculos_placa_unique UNIQUE (vei_placa);
+
+-- 3. Criar a tabela de Locações
+CREATE TABLE IF NOT EXISTS tb_locacoes (
+    loc_id            SERIAL        PRIMARY KEY,
+    loc_veiculo_id    INTEGER       NOT NULL,
+    loc_data_inicio   DATE          NOT NULL,
+    loc_data_fim      DATE,
+    loc_status        VARCHAR(20)   NOT NULL DEFAULT 'reservado'
+                      CHECK (loc_status IN ('reservado', 'locado', 'devolvida', 'cancelada')),
+    loc_valor_total   NUMERIC(10,2),
+    loc_estrategia    VARCHAR(30)   NOT NULL DEFAULT 'padrao',
+    CONSTRAINT fk_locacao_veiculo
+        FOREIGN KEY (loc_veiculo_id)
+        REFERENCES tb_veiculos (vei_id)
+        ON DELETE RESTRICT
+);
+
+-- 4. Índices para otimizar consultas frequentes
+CREATE INDEX IF NOT EXISTS idx_locacoes_status ON tb_locacoes (loc_status);
+CREATE INDEX IF NOT EXISTS idx_locacoes_veiculo ON tb_locacoes (loc_veiculo_id);
+```
+
+---
+
+## Itens de Aprendizado Esperados
+
+Ao concluir este projeto, espera-se que o aluno tenha desenvolvido competência nos seguintes temas:
+
+### Orientação a Objetos
+- Encapsulamento (properties, getters/setters)
+- Herança e Polimorfismo (VeiculoState → subclasses concretas)
+- Classes abstratas (ABC, @abstractmethod)
+- Composição de objetos (Locação possui Veiculo, Strategy e State)
+
+### Padrões de Projeto (GoF)
+- **Factory Method** — criação de objetos sem expor a lógica de instanciação
+- **Strategy** — variação de algoritmos em tempo de execução (cálculo de diárias)
+- **State** — comportamento variável conforme o estado do objeto (status da locação)
+- **Decorator** — adição dinâmica de responsabilidades (serviços extras)
+
+### Arquitetura e Persistência
+- Padrão **MVC** — separação entre Model, View e Controller
+- Padrão **DAO** — abstração do acesso a dados com `GenericDAO`
+- Conexão e operações com **PostgreSQL** via `psycopg2`
+- Modelagem relacional (chaves primárias, estrangeiras, constraints, índices)
+
+### Interface Gráfica
+- Tkinter: `tk.Tk`, `tk.Toplevel`, `tk.Menu`, `ttk.Treeview`, `ttk.Combobox`
+- Hierarquia de janelas e fluxo `wait_window()`
+- Validação de dados na interface e tratamento de erros com `messagebox`
+
+### Boas Práticas
+- Organização em pacotes (model, view, control, dao)
+- Tratamento de exceções personalizadas
+- Transparência no uso de ferramentas de IA
+
+---
+
+## 🤖 Declaração de Uso de IA
 
 _(Prática comum de transparência acadêmica e profissional no GitHub)_
 
-- [ ] **Nenhuma IA foi utilizada** na elaboração deste código.
 - [x] **Utilizei IA** como ferramenta de apoio.
-- **Ferramenta(s):** ChatGPT e Claude Opus 4.6.
-- **Finalidade:** apoio na organização do código, revisão de lógica, implementação guiada das telas e  auxílio na identificação de erros durante os testes.
-- **Validação:** Declaro que todo o código gerado foi lido, testado e compreendido.
+  - **Ferramenta(s):** Gemini 3.1 Pro
+  - **Finalidade:** Geração de boilerplate das Views Tkinter.
+  - **Validação:** Todo o código gerado foi revisado, testado e ajustado conforme as necessidades específicas do projeto e da disciplina. A responsabilidade pela arquitetura, decisões de design e correção do código é da professora.

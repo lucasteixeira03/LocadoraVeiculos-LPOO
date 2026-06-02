@@ -1,117 +1,113 @@
-import sys
-import os
+"""
+JanelaCadastroLocacao — Formulário para criar/editar locação (visão Admin).
+Permite configurar qualquer campo sem restrições rígidas de negócio.
+Acessada a partir de JanelaListagemLocacoes (botões Novo/Editar).
+"""
+import sys, os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import tkinter as tk
 from tkinter import messagebox, ttk
 from control.locacao_controller import LocacaoController
-from model.Locacao import Locacao
+
 
 class JanelaCadastroLocacao(tk.Toplevel):
-    def __init__(self, master=None, idLocacao_existente=None):
-        super().__init__(master)
+    """Formulário de cadastro/edição de locação para Administrador."""
 
-        self.idLocacao_existente = idLocacao_existente
-        self.title("Atualizar Locação" if idLocacao_existente else "Cadastro de Nova Locação")
-        
-        self.geometry("450x430")
+    def __init__(self, master=None, locacao_existente=None):
+        super().__init__(master)
+        self.locacao_existente = locacao_existente
+        self.title("Editar Locação" if locacao_existente else "Nova Locação (Admin)")
+        self.geometry("450x400")
         self.controller = LocacaoController()
 
-        self.criar_widgets()
-        self.carregar_veiculos()
-        self.preencher_campos()
+        # --- Título ---
+        texto = "Editar Locação" if locacao_existente else "Nova Locação (Admin)"
+        tk.Label(self, text=texto, font=("Helvetica", 16, "bold")).pack(pady=10)
 
-    def criar_widgets(self):
-        texto_titulo = "Atualizar Locação" if self.idLocacao_existente else "Cadastrar Locação"
-        lbl_titulo = tk.Label(self, text=texto_titulo, font=("Helvetica", 16, "bold"))
-        lbl_titulo.pack(pady=10)
+        # --- Campo: Placa do Veículo ---
+        frame_placa = tk.Frame(self)
+        frame_placa.pack(pady=5, fill="x", padx=20)
+        tk.Label(frame_placa, text="Placa Veículo:").pack(side="left")
+        self.txt_placa = tk.Entry(frame_placa)
+        self.txt_placa.pack(side="right", expand=True, fill="x")
 
-        frame_cliente = tk.Frame(self)
-        frame_cliente.pack(pady=5, fill="x", padx=20)
-        tk.Label(frame_cliente, text="Cliente:").pack(side="left")
-        self.txt_cliente = tk.Entry(frame_cliente)
-        self.txt_cliente.pack(side="right", expand=True, fill="x")
-
-        frame_veiculo = tk.Frame(self)
-        frame_veiculo.pack(pady=5, fill="x", padx=20)
-        tk.Label(frame_veiculo, text="Veículo:").pack(side="left")
-        self.cb_veiculo = ttk.Combobox(frame_veiculo, state="readonly")
-        self.cb_veiculo.pack(side="right", expand=True, fill="x")
-
-        frame_inicio = tk.Frame(self)
-        frame_inicio.pack(pady=5, fill="x", padx=20)
-        tk.Label(frame_inicio, text="Data início:").pack(side="left")
-        self.txt_data_inicio = tk.Entry(frame_inicio)
+        # --- Campo: Data Início (formato dd/mm/aaaa) ---
+        frame_di = tk.Frame(self)
+        frame_di.pack(pady=5, fill="x", padx=20)
+        tk.Label(frame_di, text="Data Início (dd/mm/aaaa):").pack(side="left")
+        self.txt_data_inicio = tk.Entry(frame_di)
         self.txt_data_inicio.pack(side="right", expand=True, fill="x")
 
-        frame_fim = tk.Frame(self)
-        frame_fim.pack(pady=5, fill="x", padx=20)
-        tk.Label(frame_fim, text="Data fim:").pack(side="left")
-        self.txt_data_fim = tk.Entry(frame_fim)
+        # --- Campo: Data Fim ---
+        frame_df = tk.Frame(self)
+        frame_df.pack(pady=5, fill="x", padx=20)
+        tk.Label(frame_df, text="Data Fim (dd/mm/aaaa):").pack(side="left")
+        self.txt_data_fim = tk.Entry(frame_df)
         self.txt_data_fim.pack(side="right", expand=True, fill="x")
 
+        # --- Campo: Status (ComboBox) ---
         frame_status = tk.Frame(self)
         frame_status.pack(pady=5, fill="x", padx=20)
         tk.Label(frame_status, text="Status:").pack(side="left")
-        status_validos = getattr(Locacao, "STATUS_VALIDOS", ("reservado", "locado", "devolvido", "cancelado"))
-        self.cb_status = ttk.Combobox(frame_status, values=list(status_validos), state="readonly")
+        self.cb_status = ttk.Combobox(frame_status, values=["reservado", "locado", "devolvida", "cancelada"])
         self.cb_status.current(0)
         self.cb_status.pack(side="right", expand=True, fill="x")
 
-        lbl_ajuda = tk.Label(self, text="Datas: DD/MM/AAAA")
-        lbl_ajuda.pack(pady=5)
+        # --- Campo: Estratégia ---
+        frame_estrat = tk.Frame(self)
+        frame_estrat.pack(pady=5, fill="x", padx=20)
+        tk.Label(frame_estrat, text="Estratégia:").pack(side="left")
+        self.cb_estrategia = ttk.Combobox(frame_estrat, values=["padrao", "vip"])
+        self.cb_estrategia.current(0)
+        self.cb_estrategia.pack(side="right", expand=True, fill="x")
 
-        frame_botoes = tk.Frame(self)
-        frame_botoes.pack(pady=20)
+        # --- Campo: Valor Total (opcional, preenchido manualmente pelo admin) ---
+        frame_valor = tk.Frame(self)
+        frame_valor.pack(pady=5, fill="x", padx=20)
+        tk.Label(frame_valor, text="Valor Total (R$):").pack(side="left")
+        self.txt_valor = tk.Entry(frame_valor)
+        self.txt_valor.pack(side="right", expand=True, fill="x")
 
-        texto_botao = "Atualizar" if self.idLocacao_existente else "Salvar"
-        btn_salvar = tk.Button(frame_botoes, text=texto_botao, width=10, command=self.salvar)
-        btn_salvar.pack(side="left", padx=5)
+        # --- Botão Salvar/Atualizar ---
+        texto_btn = "Atualizar" if locacao_existente else "Salvar"
+        tk.Button(self, text=texto_btn, command=self.solicitar_cadastro).pack(pady=15)
 
-        btn_cancelar = tk.Button(frame_botoes, text="Cancelar", width=10, command=self.destroy)
-        btn_cancelar.pack(side="left", padx=5)
+        # --- Preencher campos se for edição ---
+        if self.locacao_existente:
+            loc = self.locacao_existente
+            self.txt_placa.insert(0, loc.veiculo.placa)
+            self.txt_data_inicio.insert(0, loc.data_inicio.strftime("%d/%m/%Y"))
+            if loc.data_fim:
+                self.txt_data_fim.insert(0, loc.data_fim.strftime("%d/%m/%Y"))
+            self.cb_status.set(loc.status)
+            # Determina nome da estratégia
+            from model.LocacaoStrategy import CalculoVIPStrategy
+            self.cb_estrategia.set('vip' if isinstance(loc.estrategia, CalculoVIPStrategy) else 'padrao')
+            if loc.valor_total:
+                self.txt_valor.insert(0, str(loc.valor_total))
 
-    def carregar_veiculos(self):
-        placas = self.controller.listar_placas_veiculos()
-        self.cb_veiculo["values"] = placas
-        if placas:
-            self.cb_veiculo.set(placas[0])
+    def solicitar_cadastro(self):
+        """Coleta dados do formulário e envia ao Controller."""
+        placa = self.txt_placa.get().strip().upper()
+        data_inicio = self.txt_data_inicio.get().strip()
+        data_fim = self.txt_data_fim.get().strip() or None
+        status = self.cb_status.get().strip()
+        estrategia = self.cb_estrategia.get().strip()
+        valor_total = self.txt_valor.get().strip() or None
+
+        if self.locacao_existente:
+            # Edição: chama atualizar_locacao_admin no Controller
+            sucesso, msg = self.controller.atualizar_locacao_admin(
+                self.locacao_existente.id, placa, data_inicio, data_fim, status, estrategia, valor_total)
         else:
-            self.cb_veiculo.set("")
-            messagebox.showwarning("Aviso", "Nenhum veículo cadastrado foi encontrado.", parent=self)
-
-    def preencher_campos(self):
-        if self.idLocacao_existente is None:
-            return
-
-        self.txt_cliente.insert(0, self.idLocacao_existente.cliente)
-        self.cb_veiculo.set(self.idLocacao_existente.veiculo.placa)
-        self.txt_data_inicio.insert(0, self.idLocacao_existente.data_inicio.strftime("%d/%m/%Y"))
-        self.txt_data_fim.insert(0, self.idLocacao_existente.data_fim.strftime("%d/%m/%Y"))
-        self.cb_status.set(self.idLocacao_existente.status)
-
-    def salvar(self):
-        if self.idLocacao_existente:
-            sucesso, msg = self.controller.atualizar_locacao(
-                self.idLocacao_existente.id_locacao,
-                self.txt_cliente.get().strip(),
-                self.cb_veiculo.get().strip(),
-                self.txt_data_inicio.get().strip(),
-                self.txt_data_fim.get().strip(),
-                self.cb_status.get().strip()
-            )
-        else:
-            sucesso, msg = self.controller.salvaLocacao_admin(
-                None,
-                self.txt_cliente.get().strip(),
-                self.cb_veiculo.get().strip(),
-                self.txt_data_inicio.get().strip(),
-                self.txt_data_fim.get().strip(),
-                self.cb_status.get().strip()
-            )
+            # Criação: chama salvar_locacao_admin no Controller
+            sucesso, msg = self.controller.salvar_locacao_admin(
+                placa, data_inicio, data_fim, status, estrategia, valor_total)
 
         if sucesso:
             messagebox.showinfo("Sucesso", msg, parent=self)
-            self.destroy()
         else:
             messagebox.showerror("Erro", msg, parent=self)
+
+        self.destroy()

@@ -84,27 +84,6 @@ class VeiculoDAO(GenericDAO):
             if cursor:
                 cursor.close()
     
-    def listar_placas(self):
-        if not self.conexao:
-            return []
-        
-        try:
-            cursor = self.conexao.cursor()
-            query = """SELECT vei_placa
-                    FROM tb_veiculos
-                    ORDER BY vei_placa"""
-            cursor.execute(query)
-            linhas = cursor.fetchall()
-            return [cada_linha[0] for cada_linha in linhas]
-        
-        except Exception as e:
-            print(f"Erro ao buscar placas dos veículos: {e}")
-            return []
-        
-        finally:
-            if cursor:
-                cursor.close()
-
     def atualizar(self, objeto: Veiculo):
         if not self.conexao:
             return False, "Sem conexão com o BD"
